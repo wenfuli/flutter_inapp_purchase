@@ -1,9 +1,8 @@
-name: flutter_inapp_purchase
-description: In App Purchase plugin for flutter. This project has been forked by
-  react-native-iap and we are willing to share same experience with that on
-  react-native.
-version: 5.6.2
-homepage: https://github.com/dooboolab/flutter_inapp_purchase/blob/main/pubspec.yaml
+name: flutter_inapp_purchase_ex
+description: Enhanced In App Purchase plugin for flutter. Supports Android Google Play Store and iOS App Store purchases.
+version: 1.0.0
+homepage: https://github.com/your_username/flutter_inapp_purchase_ex
+
 environment:
   sdk: ">=2.15.0 <4.0.0"
   flutter: ">=2.0.0"
@@ -28,7 +27,7 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.dooboolab.flutterinapppurchase
+        package: com.dooboolab.flutterinapppurchaseex
         pluginClass: FlutterInappPurchasePlugin
         mainClass: FlutterInappPurchasePlugin
       ios:

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter_inapp_purchase/flutter_inapp_purchase.dart';
+import 'package:flutter_inapp_purchase_ex/flutter_inapp_purchase.dart';
 
 void main() => runApp(new MyApp());
 
