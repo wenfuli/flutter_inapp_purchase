@@ -2,14 +2,14 @@ group 'com.dooboolab.flutterinapppurchase'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.8.10'
+    ext.kotlin_version = '1.8.10'  // 稳定的Kotlin版本
     repositories {
         google()
         mavenCentral()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.4.2'
+        classpath 'com.android.tools.build:gradle:7.4.2'  // 经过验证的AGP版本
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
@@ -25,36 +25,48 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    if (project.android.hasProperty('namespace')) {
-        namespace 'com.dooboolab.flutterinapppurchase'
-    }
-    compileSdkVersion 33
-
+    compileSdkVersion 34
+    
     defaultConfig {
         minSdkVersion 21
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        targetSdkVersion 34
     }
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
-    lintOptions {
-        disable 'InvalidPackage'
-    }
+    
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11  // 匹配AGP要求
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '11'
+    }
+    
+    // 保守的dexing配置，确保7.x兼容性
+    dexOptions {
+        javaMaxHeapSize "2g"  // 适中的内存设置
+        preDexLibraries = true
+        jumboMode = true
+        incremental = false  // 禁用增量以提高稳定性
+    }
+    
+    // 优化包装选项
+    packagingOptions {
+        resources {
+            excludes += [
+                'META-INF/DEPENDENCIES', 
+                'META-INF/LICENSE*', 
+                'META-INF/NOTICE*',
+                'META-INF/*.kotlin_module',
+                'META-INF/INDEX.LIST'
+            ]
+        }
+        pickFirst 'lib/**/libc++_shared.so'
     }
 }
 
 dependencies {
-    def billing_version = "6.0.1"
+    def billing_version = "7.1.0"  // 使用7.1.0版本
 
-    implementation "com.android.billingclient:billing-ktx:$billing_version"
-    implementation files('jars/in-app-purchasing-2.0.76.jar')
-    implementation 'androidx.annotation:annotation:1.6.0'
+    implementation "com.android.billingclient:billing:$billing_version"
 }
 

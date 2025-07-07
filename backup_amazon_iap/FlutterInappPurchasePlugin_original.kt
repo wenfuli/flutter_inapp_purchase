@@ -12,6 +12,7 @@ import android.content.pm.PackageManager.NameNotFoundException
 /** FlutterInappPurchasePlugin  */
 class FlutterInappPurchasePlugin : FlutterPlugin, ActivityAware {
     private var androidInappPurchasePlugin: AndroidInappPurchasePlugin? = null
+    private var amazonInappPurchasePlugin: AmazonInappPurchasePlugin? = null
     private var channel: MethodChannel? = null
     override fun onAttachedToEngine(binding: FlutterPluginBinding) {
         onAttached(binding.applicationContext, binding.binaryMessenger)
@@ -19,12 +20,28 @@ class FlutterInappPurchasePlugin : FlutterPlugin, ActivityAware {
 
     private fun onAttached(context: Context, messenger: BinaryMessenger) {
         isAndroid = isPackageInstalled(context, "com.android.vending")
+        isAmazon = isPackageInstalled(context, "com.amazon.venezia")
+
+        // In the case of an amazon device which has been side loaded with the Google Play store,
+        // we should use the store the app was installed from.
+        if (isAmazon && isAndroid) {
+            if (isAppInstalledFrom(context, "amazon")) {
+                isAndroid = false
+            } else {
+                isAmazon = false
+            }
+        }
         channel = MethodChannel(messenger, "flutter_inapp")
         if (isAndroid) {
             androidInappPurchasePlugin = AndroidInappPurchasePlugin()
             androidInappPurchasePlugin!!.setContext(context)
             androidInappPurchasePlugin!!.setChannel(channel)
             channel!!.setMethodCallHandler(androidInappPurchasePlugin)
+        } else if (isAmazon) {
+            amazonInappPurchasePlugin = AmazonInappPurchasePlugin()
+            amazonInappPurchasePlugin!!.setContext(context)
+            amazonInappPurchasePlugin!!.setChannel(channel)
+            channel!!.setMethodCallHandler(amazonInappPurchasePlugin)
         }
     }
 
@@ -33,12 +50,16 @@ class FlutterInappPurchasePlugin : FlutterPlugin, ActivityAware {
         channel = null
         if (isAndroid) {
             androidInappPurchasePlugin!!.setChannel(null)
+        } else if (isAmazon) {
+            amazonInappPurchasePlugin!!.setChannel(null)
         }
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         if (isAndroid) {
             androidInappPurchasePlugin!!.setActivity(binding.activity)
+        } else if (isAmazon) {
+            amazonInappPurchasePlugin!!.setActivity(binding.activity)
         }
     }
 
@@ -46,6 +67,8 @@ class FlutterInappPurchasePlugin : FlutterPlugin, ActivityAware {
         if (isAndroid) {
             androidInappPurchasePlugin!!.setActivity(null)
             androidInappPurchasePlugin!!.onDetachedFromActivity()
+        } else if (isAmazon) {
+            amazonInappPurchasePlugin!!.setActivity(null)
         }
     }
 
@@ -61,11 +84,16 @@ class FlutterInappPurchasePlugin : FlutterPlugin, ActivityAware {
         this.androidInappPurchasePlugin = androidInappPurchasePlugin
     }
 
+    private fun setAmazonInappPurchasePlugin(amazonInappPurchasePlugin: AmazonInappPurchasePlugin) {
+        this.amazonInappPurchasePlugin = amazonInappPurchasePlugin
+    }
+
     companion object {
         private var isAndroid = false
+        private var isAmazon = false
 
         fun getStore(): String {
-           return if (isAndroid) "play_store" else "none"
+           return if (!isAndroid && !isAmazon) "none" else if (isAndroid) "play_store" else "amazon"
         }
 
         private fun isPackageInstalled(ctx: Context, packageName: String): Boolean {

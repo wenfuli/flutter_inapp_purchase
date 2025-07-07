@@ -79,9 +79,14 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
                 return
             }
             
+            // 使用Billing Library 7.1兼容的PendingPurchasesParams
+            val pendingPurchasesParams = PendingPurchasesParams.newBuilder()
+                .enableOneTimeProducts()  // 启用一次性产品的pending purchases
+                .build()
+            
             billingClient = BillingClient.newBuilder(context ?: return).apply {
                 setListener(purchasesUpdatedListener)
-                enablePendingPurchases()
+                enablePendingPurchases(pendingPurchasesParams)  // 使用新的带参数版本
             }.build()
             
             billingClient?.startConnection(object : BillingClientStateListener {
@@ -554,25 +559,68 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
                 builder.setObfuscatedProfileId(obfuscatedProfileId)
             }
 
+            // 使用Billing Library 7.x兼容的ReplacementMode替代废弃的ProrationMode
             when (prorationMode) {
                 -1 -> {} //ignore
-                ProrationMode.IMMEDIATE_AND_CHARGE_PRORATED_PRICE -> {
-                    params.setReplaceProrationMode(ProrationMode.IMMEDIATE_AND_CHARGE_PRORATED_PRICE)
+                1 -> { // IMMEDIATE_WITH_TIME_PRORATION
+                    params.setSubscriptionReplacementMode(SubscriptionUpdateParams.ReplacementMode.WITH_TIME_PRORATION)
                     if (type != BillingClient.ProductType.SUBS) {
                         safeChannel.error(
                             TAG,
                             "buyItemByType",
-                            "IMMEDIATE_AND_CHARGE_PRORATED_PRICE for proration mode only works in subscription purchase."
+                            "ReplacementMode only works in subscription purchase."
                         )
                         return
                     }
                 }
-                ProrationMode.IMMEDIATE_WITHOUT_PRORATION,
-                ProrationMode.DEFERRED,
-                ProrationMode.IMMEDIATE_WITH_TIME_PRORATION,
-                ProrationMode.IMMEDIATE_AND_CHARGE_FULL_PRICE ->
-                    params.setReplaceProrationMode(prorationMode)
-                else -> params.setReplaceProrationMode(ProrationMode.UNKNOWN_SUBSCRIPTION_UPGRADE_DOWNGRADE_POLICY)
+                2 -> { // IMMEDIATE_AND_CHARGE_PRORATED_PRICE
+                    params.setSubscriptionReplacementMode(SubscriptionUpdateParams.ReplacementMode.CHARGE_PRORATED_PRICE)
+                    if (type != BillingClient.ProductType.SUBS) {
+                        safeChannel.error(
+                            TAG,
+                            "buyItemByType",
+                            "ReplacementMode only works in subscription purchase."
+                        )
+                        return
+                    }
+                }
+                3 -> { // IMMEDIATE_WITHOUT_PRORATION
+                    params.setSubscriptionReplacementMode(SubscriptionUpdateParams.ReplacementMode.WITHOUT_PRORATION)
+                    if (type != BillingClient.ProductType.SUBS) {
+                        safeChannel.error(
+                            TAG,
+                            "buyItemByType",
+                            "ReplacementMode only works in subscription purchase."
+                        )
+                        return
+                    }
+                }
+                4 -> { // DEFERRED
+                    params.setSubscriptionReplacementMode(SubscriptionUpdateParams.ReplacementMode.DEFERRED)
+                    if (type != BillingClient.ProductType.SUBS) {
+                        safeChannel.error(
+                            TAG,
+                            "buyItemByType",
+                            "ReplacementMode only works in subscription purchase."
+                        )
+                        return
+                    }
+                }
+                5 -> { // IMMEDIATE_AND_CHARGE_FULL_PRICE
+                    params.setSubscriptionReplacementMode(SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE)
+                    if (type != BillingClient.ProductType.SUBS) {
+                        safeChannel.error(
+                            TAG,
+                            "buyItemByType",
+                            "ReplacementMode only works in subscription purchase."
+                        )
+                        return
+                    }
+                }
+                else -> {
+                    // 默认使用WITHOUT_PRORATION，因为UNKNOWN_SUBSCRIPTION_UPGRADE_DOWNGRADE_POLICY在7.x中已移除
+                    params.setSubscriptionReplacementMode(SubscriptionUpdateParams.ReplacementMode.WITHOUT_PRORATION)
+                }
             }
 
             if (purchaseToken != null) {

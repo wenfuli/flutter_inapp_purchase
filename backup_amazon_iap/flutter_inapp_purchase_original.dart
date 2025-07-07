@@ -138,6 +138,7 @@ class FlutterInappPurchase {
     if (_platform.isAndroid) {
       final store = await _channel.invokeMethod<String?>('getStore');
       if (store == "play_store") return Store.playStore;
+      if (store == "amazon") return Store.amazon;
       return Store.none;
     }
     return Future.value(Store.none);
